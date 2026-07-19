@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@theme {
+  /* --- Brand palette, from ui_theme.jpg --- */
+  --color-ink: #0C120E;          /* primary bg — hero / dark sections (green-black) */
+  --color-paper: #F6F8F5;        /* secondary bg — content sections (warm off-white) */
+  --color-leaf: #3FBF6B;         /* primary accent — CTAs, highlights (bright green) */
+  --color-leaf-dim: #2E9C55;
+  --color-canopy: #123D0A;       /* deep forest green — dark-section accents, badges */
+  --color-slate: #6B7A73;        /* muted sage-gray — secondary text/borders on dark bg */
+  --color-emerald: #2E7D5B;      /* success / verified states */
+  --color-amber: #E0A030;        /* warning / pending states */
+  --color-coral: #E5484D;        /* error / rejected states */
+  --color-onDark: #F4F7F4;       /* text on dark */
+  --color-onLight: #131A15;      /* text on light */
+  --color-line: color-mix(in oklab, var(--color-onLight) 10%, transparent);
+  --color-line-dark: color-mix(in oklab, var(--color-onDark) 14%, transparent);
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --animate-rise: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-float: float 3.2s ease-in-out infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.06); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(var(--float-rot, 0deg)); }
+    50% { transform: translateY(-10px) rotate(var(--float-rot, 0deg)); }
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+  body {
+    font-family: var(--font-body);
+    background: var(--color-paper);
+    color: var(--color-onLight);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-leaf);
+    outline-offset: 3px;
+  }
+
+  /* Sticky navbar (h-16) — keep in-page #hash targets readable */
+  [id] {
+    scroll-margin-top: 5.5rem;
+  }
+
+  /* Respect reduced-motion system preference — real perf + a11y floor */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .container-page {
+    max-width: 1180px;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+
+  /* Marketplace stall-grid texture — used on dark hero/section backgrounds */
+  .market-grid {
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--color-leaf) 14%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--color-leaf) 14%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 90%);
+  }
+
+  /* Soft dot texture — used on light content sections */
+  .market-dots {
+    background-image: radial-gradient(color-mix(in oklab, var(--color-onLight) 12%, transparent) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .card-surface {
+    background: color-mix(in oklab, var(--color-leaf) 6%, white);
+  }
+
+  /* Subtle grain — the kind of tactile detail that separates a flat gradient
+     from something that feels considered. Applied as an overlay, not baked
+     into the background, so it never affects legibility. */
+  .grain-overlay {
+    position: relative;
+  }
+  .grain-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+}
