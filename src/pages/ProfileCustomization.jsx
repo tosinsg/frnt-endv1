@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { motion } from 'framer-motion'
+import { ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import { updateProfile } from '@/store/slices/authSlice'
+import { routeForUser } from '@/lib/authRoutes'
 import { cn } from '@/lib/utils'
 
 const accents = ['#3FBF6B', '#123D0A', '#2E7D5B', '#E0A030']
@@ -41,11 +44,26 @@ export default function ProfileCustomization() {
     setMessage(updateProfile.fulfilled.match(result) ? 'Saved.' : result.payload || 'Save failed')
   }
 
+  const dashboardPath = routeForUser(user)
+  const dashboardLabel =
+    (user?.role || '').toLowerCase() === 'admin'
+      ? 'Back to admin dashboard'
+      : (user?.role || '').toLowerCase() === 'vendor'
+        ? 'Back to vendor dashboard'
+        : 'Back to dashboard'
+
   return (
     <div className="min-h-screen bg-paper">
       <Navbar />
       <div className="container-page py-16 grid md:grid-cols-[1fr_320px] gap-10">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+          <Link
+            to={dashboardPath}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-leaf-dim hover:text-leaf mb-5 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            {dashboardLabel}
+          </Link>
           <h1 className="font-display text-3xl font-semibold mb-1">
             {isVendor ? 'Customize your shop page' : 'Customize your profile'}
           </h1>

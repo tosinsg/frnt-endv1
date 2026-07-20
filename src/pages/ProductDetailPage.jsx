@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { motion } from 'framer-motion'
-import { Star } from 'lucide-react'
+import { Star, Minus, Plus } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Button from '@/components/ui/Button'
@@ -20,11 +20,14 @@ import { cn } from '@/lib/utils'
 
 export default function ProductDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const dispatch = useDispatch()
   const product = useSelector(
     (s) => s.catalog.products.find((p) => p.id === id) || s.catalog.currentProduct,
   )
   const isAuthenticated = useSelector((s) => s.auth.isAuthenticated)
+  const userRole = useSelector((s) => (s.auth.user?.role || '').toLowerCase())
+  const isCustomer = userRole === 'customer'
   const vendorReviews = useSelector((s) =>
     s.catalog.vendorReviews.filter((r) => r.vendorId === product?.vendorId),
   )
@@ -34,11 +37,14 @@ export default function ProductDetailPage() {
   const [tab, setTab] = useState('product')
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [quantity, setQuantity] = useState(1)
+  const [addedMsg, setAddedMsg] = useState('')
 
   useEffect(() => {
     setLoading(true)
+    setQuantity(1)
+    setAddedMsg('')
     Promise.all([
       dispatch(fetchProduct(id)),
       dispatch(fetchProductReviews(id)),
@@ -54,10 +60,9 @@ export default function ProductDetailPage() {
   async function submitVendorReview(e) {
     e.preventDefault()
     if (!isAuthenticated) {
-      setError('Log in to leave a review.')
+      navigate('/login')
       return
     }
-    setError('')
     await dispatch(
       addVendorReview({ vendorId: product.vendorId, rating, comment, orderId: 'n/a' }),
     )
@@ -67,10 +72,9 @@ export default function ProductDetailPage() {
   async function submitProductReview(e) {
     e.preventDefault()
     if (!isAuthenticated) {
-      setError('Log in to leave a review.')
+      navigate('/login')
       return
     }
-    setError('')
     await dispatch(addProductReview({ productId: product.id, rating, comment }))
     setComment('')
   }
@@ -122,22 +126,74 @@ export default function ProductDetailPage() {
               <span className="text-xs text-onLight/40 ml-1">{product.rating}</span>
             </div>
             <p className="text-onLight/65 mb-8 max-w-md">{product.description}</p>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 mb-6">
               <PriceTag product={product} size="lg" />
+              {isCustomer || !isAuthenticated ? (
+                <div className="flex items-center gap-2 bg-white border border-onLight/12 rounded-full px-2 py-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="size-8 rounded-full flex items-center justify-center hover:bg-leaf/10 text-onLight/70"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-8 text-center text-sm font-semibold tabular-nums">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((q) => Math.min(99, q + 1))}
+                    className="size-8 rounded-full flex items-center justify-center hover:bg-leaf/10 text-onLight/70"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 size="lg"
                 onClick={() => {
                   if (!isAuthenticated) {
-                    setError('Log in to add items to your cart.')
+                    navigate('/login', { state: { from: `/products/${product.id}` } })
                     return
                   }
-                  dispatch(addToCart(product.id))
+                  if (!isCustomer) {
+                    navigate(
+                      userRole === 'vendor'
+                        ? '/vendor/dashboard'
+                        : userRole === 'admin'
+                          ? '/admin'
+                          : '/role-confirmation',
+                    )
+                    return
+                  }
+                  dispatch(addToCart({ productId: product.id, quantity }))
+                  setAddedMsg(
+                    quantity === 1
+                      ? 'Added to cart'
+                      : `Added ${quantity} to cart`,
+                  )
+                  setTimeout(() => setAddedMsg(''), 2500)
                 }}
               >
-                Add to cart
+                {!isAuthenticated
+                  ? 'Sign in to buy'
+                  : isCustomer
+                    ? quantity > 1
+                      ? `Add ${quantity} to cart`
+                      : 'Add to cart'
+                    : 'Customer accounts only'}
               </Button>
+              {isCustomer && (
+                <Button size="lg" variant="outline" onClick={() => navigate('/checkout')}>
+                  Go to cart
+                </Button>
+              )}
             </div>
-            {error && <p className="text-sm text-coral mt-4">{error}</p>}
+            {addedMsg && (
+              <p className="text-sm text-leaf-dim font-medium mt-3">{addedMsg}</p>
+            )}
           </motion.div>
         </div>
 

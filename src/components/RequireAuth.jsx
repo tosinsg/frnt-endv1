@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchMe } from '@/store/slices/authSlice'
-import { redirectForAccess, routeForUser } from '@/lib/authRoutes'
+import { redirectForAccess } from '@/lib/authRoutes'
 import PageLoader from '@/components/PageLoader'
 
 /**
@@ -45,6 +45,7 @@ export default function RequireAuth({ children, roles, allowIncompleteOnboarding
   }
 
   if (user) {
+    // Single source of truth: role mismatch + onboarding stage
     const dest = redirectForAccess(
       user,
       { roles, allowIncompleteOnboarding },
@@ -52,14 +53,6 @@ export default function RequireAuth({ children, roles, allowIncompleteOnboarding
     )
     if (dest && dest !== location.pathname) {
       return <Navigate to={dest} replace />
-    }
-
-    if (roles?.length) {
-      const role = (user.role || '').toLowerCase()
-      const allowed = roles.map((r) => r.toLowerCase())
-      if (!allowed.includes(role)) {
-        return <Navigate to={routeForUser(user)} replace />
-      }
     }
   }
 

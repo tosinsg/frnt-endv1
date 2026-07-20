@@ -70,6 +70,24 @@ export function needsVendorOnboarding(user) {
 }
 
 /**
+ * Role requirements for known protected paths (used after login returnTo).
+ * Paths not listed here are treated as open to any authenticated user
+ * (subject to onboarding rules unless allowIncomplete is implied).
+ */
+const PATH_ROLE_RULES = [
+  { prefix: '/customer/dashboard', roles: ['customer'] },
+  { prefix: '/vendor/dashboard', roles: ['vendor'] },
+  { prefix: '/admin', roles: ['admin'] },
+  { prefix: '/checkout', roles: ['customer'] },
+  { prefix: '/onboarding/quiz', roles: ['customer'], allowIncompleteOnboarding: true },
+  // Customers may open eligibility before becoming vendors; role flips on submit
+  { prefix: '/onboarding/vendor', roles: ['customer', 'vendor'], allowIncompleteOnboarding: true },
+  { prefix: '/role-confirmation', allowIncompleteOnboarding: true },
+  { prefix: '/profile', roles: ['customer', 'vendor', 'admin'] },
+  { prefix: '/contact', allowIncompleteOnboarding: true },
+]
+
+/**
  * If the user is on a page they shouldn't access yet (or wrong role),
  * return the path they should be sent to. Otherwise null.
  *
@@ -110,4 +128,34 @@ export function redirectForAccess(user, opts = {}, pathname = '') {
   }
 
   return null
+}
+
+/**
+ * Safe post-login destination: prefers the page the user tried to open,
+ * but only if their role / onboarding stage allows it.
+ */
+export function resolvePostAuthPath(user, intendedPath) {
+  const home = routeForUser(user)
+  if (!user) return '/login'
+  if (typeof intendedPath !== 'string' || !intendedPath.startsWith('/') || intendedPath.startsWith('//')) {
+    return home
+  }
+
+  // Never send people back to guest-only auth screens after login
+  if (
+    intendedPath === '/login' ||
+    intendedPath === '/register' ||
+    intendedPath === '/auth' ||
+    intendedPath === '/verify-otp'
+  ) {
+    return home
+  }
+
+  const rule = PATH_ROLE_RULES.find((r) => intendedPath === r.prefix || intendedPath.startsWith(`${r.prefix}/`))
+  const opts = rule
+    ? { roles: rule.roles, allowIncompleteOnboarding: Boolean(rule.allowIncompleteOnboarding) }
+    : {}
+
+  const blocked = redirectForAccess(user, opts, intendedPath)
+  return blocked || intendedPath
 }

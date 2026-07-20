@@ -115,8 +115,9 @@ export default function AdminDashboard() {
           {section === 'Transactions' && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-onLight/50 flex items-center gap-1.5 mb-1">
-                <CreditCard size={15} /> Paid orders waiting for your confirmation. Customers see
-                “Waiting for admin” until you confirm.
+                <CreditCard size={15} /> Orders with payment receipts awaiting your review. Open the
+                receipt, verify the transfer, then confirm — the order is{' '}
+                <strong className="font-medium text-onLight/70">not complete</strong> until you confirm.
               </p>
               {pendingTransactions.length === 0 && (
                 <p className="text-sm text-onLight/45">No transactions awaiting confirmation.</p>
@@ -124,13 +125,13 @@ export default function AdminDashboard() {
               {pendingTransactions.map((o) => (
                 <div key={o.id} className="bg-white border border-onLight/10 rounded-2xl p-5">
                   <div className="flex justify-between items-start gap-4 flex-wrap">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-medium">
                         ₦{(o.total || 0).toLocaleString()} · {o.customerName || o.customerEmail || 'Customer'}
                       </h3>
                       <p className="text-xs text-onLight/45 mt-1">
                         {o.customerEmail} · Ref: {o.paymentReference || '—'} ·{' '}
-                        {o.paymentProvider || '—'}
+                        {o.paymentProvider || 'receipt'}
                       </p>
                       <p className="text-xs text-onLight/40 mt-1">
                         {(o.items || [])
@@ -146,6 +147,35 @@ export default function AdminDashboard() {
                       <p className="text-xs text-onLight/35 mt-1">
                         {o.placedAt ? new Date(o.placedAt).toLocaleString() : ''}
                       </p>
+                      {o.paymentReceiptUrl && (
+                        <div className="mt-3">
+                          <a
+                            href={o.paymentReceiptUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-leaf-dim bg-leaf/10 hover:bg-leaf/15 rounded-full px-3 py-1.5"
+                          >
+                            View payment receipt
+                          </a>
+                          {/\.(png|jpe?g|gif|webp)(\?|$)/i.test(o.paymentReceiptUrl) && (
+                            <a
+                              href={o.paymentReceiptUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-2 block max-w-xs rounded-xl overflow-hidden border border-onLight/10"
+                            >
+                              <img
+                                src={o.paymentReceiptUrl}
+                                alt="Payment receipt"
+                                className="w-full h-auto max-h-40 object-cover"
+                              />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      {!o.paymentReceiptUrl && (
+                        <p className="text-xs text-coral mt-2">No receipt attached</p>
+                      )}
                     </div>
                     <div className="flex flex-col gap-2 items-end">
                       <span className={cn('text-xs font-medium rounded-full px-3 py-1.5', orderStatusMeta(o.status).className)}>
@@ -153,12 +183,14 @@ export default function AdminDashboard() {
                       </span>
                       <div className="flex gap-2">
                         <button
+                          type="button"
                           onClick={() => dispatch(confirmTransaction(o.id))}
                           className="flex items-center gap-1.5 text-xs font-medium bg-emerald/15 text-emerald rounded-full px-3 py-2"
                         >
                           <Check size={14} /> Confirm payment
                         </button>
                         <button
+                          type="button"
                           onClick={() =>
                             dispatch(updateOrderStatus({ orderId: o.id, status: 'Cancelled' }))
                           }

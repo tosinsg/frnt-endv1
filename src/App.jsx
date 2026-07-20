@@ -92,7 +92,7 @@ export default function App() {
         <Route
           path="/onboarding/vendor"
           element={
-            <RequireAuth roles={['vendor']} allowIncompleteOnboarding>
+            <RequireAuth roles={['customer', 'vendor']} allowIncompleteOnboarding>
               <VendorEligibilityFlow />
             </RequireAuth>
           }

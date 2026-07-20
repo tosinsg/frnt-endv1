@@ -234,7 +234,14 @@ const authSlice = createSlice({
         state.user = action.payload
       })
       .addCase(submitVendorEligibility.fulfilled, (state, action) => {
-        state.user = action.payload
+        // May return AuthResponse { token, user } when customer is promoted to vendor
+        if (action.payload?.token && action.payload?.user) {
+          applyAuth(state, action.payload)
+        } else if (action.payload?.user) {
+          state.user = action.payload.user
+        } else {
+          state.user = action.payload
+        }
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.user = action.payload

@@ -46,19 +46,37 @@ export const fetchCart = createAsyncThunk('catalog/fetchCart', async (_, { rejec
   }
 })
 
-export const addToCart = createAsyncThunk('catalog/addToCart', async (productId, { rejectWithValue }) => {
-  try {
-    return await api.addToCart(productId)
-  } catch (e) {
-    return rejectWithValue(e.message)
-  }
-})
+export const addToCart = createAsyncThunk(
+  'catalog/addToCart',
+  async (arg, { rejectWithValue }) => {
+    try {
+      // Supports addToCart(productId) or addToCart({ productId, quantity })
+      const productId = typeof arg === 'object' ? arg.productId : arg
+      const quantity = typeof arg === 'object' ? Number(arg.quantity) || 1 : 1
+      return await api.addToCart(productId, quantity)
+    } catch (e) {
+      return rejectWithValue(e.message)
+    }
+  },
+)
 
 export const removeFromCart = createAsyncThunk(
   'catalog/removeFromCart',
   async (productId, { rejectWithValue }) => {
     try {
       return await api.removeFromCart(productId)
+    } catch (e) {
+      return rejectWithValue(e.message)
+    }
+  },
+)
+
+export const setCartQuantity = createAsyncThunk(
+  'catalog/setCartQuantity',
+  async ({ productId, quantity }, { rejectWithValue }) => {
+    try {
+      if (quantity <= 0) return await api.removeFromCart(productId)
+      return await api.setCartQuantity(productId, quantity)
     } catch (e) {
       return rejectWithValue(e.message)
     }
@@ -233,20 +251,41 @@ const catalogSlice = createSlice({
       })
       // Optimistic cart: badge updates immediately, then reconciles with server
       .addCase(addToCart.pending, (state, action) => {
-        state.cart = bumpCartItem(state.cart, action.meta.arg, 1)
+        const arg = action.meta.arg
+        const productId = typeof arg === 'object' ? arg.productId : arg
+        const quantity = typeof arg === 'object' ? Number(arg.quantity) || 1 : 1
+        state.cart = bumpCartItem(state.cart, productId, quantity)
       })
       .addCase(addToCart.fulfilled, (state, action) => {
         state.cart = action.payload || []
       })
       .addCase(addToCart.rejected, (state, action) => {
-        // Roll back optimistic add
-        state.cart = bumpCartItem(state.cart, action.meta.arg, -1)
+        const arg = action.meta.arg
+        const productId = typeof arg === 'object' ? arg.productId : arg
+        const quantity = typeof arg === 'object' ? Number(arg.quantity) || 1 : 1
+        state.cart = bumpCartItem(state.cart, productId, -quantity)
       })
       .addCase(removeFromCart.pending, (state, action) => {
         state.cart = state.cart.filter((c) => c.productId !== action.meta.arg)
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
         state.cart = action.payload || []
+      })
+      .addCase(setCartQuantity.pending, (state, action) => {
+        const { productId, quantity } = action.meta.arg
+        if (quantity <= 0) {
+          state.cart = state.cart.filter((c) => c.productId !== productId)
+        } else {
+          const existing = state.cart.find((c) => c.productId === productId)
+          if (existing) existing.quantity = quantity
+          else state.cart.push({ productId, quantity })
+        }
+      })
+      .addCase(setCartQuantity.fulfilled, (state, action) => {
+        state.cart = action.payload || []
+      })
+      .addCase(setCartQuantity.rejected, (state) => {
+        // Server is source of truth — next fetchCart will reconcile
       })
       .addCase(clearCart.fulfilled, (state, action) => {
         state.cart = action.payload || []
@@ -261,7 +300,14 @@ const catalogSlice = createSlice({
         }
       })
       .addCase(initiateCheckout.fulfilled, (state, action) => {
-        state.cart = []
+        // Remove only checked-out lines (partial checkout supported)
+        const ids = action.meta?.arg?.productIds
+        if (Array.isArray(ids) && ids.length > 0) {
+          const remove = new Set(ids)
+          state.cart = state.cart.filter((c) => !remove.has(c.productId))
+        } else {
+          state.cart = []
+        }
         const order = action.payload?.order
         if (order) {
           state.orders = [order, ...state.orders.filter((o) => o.id !== order.id)]

@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { motion } from 'framer-motion'
-import { UploadCloud, Clock, Loader2 } from 'lucide-react'
+import { UploadCloud, Clock, Loader2, ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
 import { submitVendorEligibility } from '@/store/slices/authSlice'
 import { uploadVendorDoc } from '@/lib/cloudinary'
+import { routeForUser } from '@/lib/authRoutes'
 
 const categories = ['Fashion & Accessories', 'Electronics', 'Home & Living', 'Beauty', 'Food & Groceries']
 const ranges = ['1–10 SKUs', '10–50 SKUs', '50–100 SKUs', '100+ SKUs']
@@ -85,8 +86,14 @@ export default function VendorEligibilityFlow() {
     setLoading(false)
     if (!submitVendorEligibility.fulfilled.match(result)) {
       setError(result.payload || 'Submission failed')
+      return
     }
+    // Role becomes vendor only after this submit — send to vendor dashboard (pending UI)
+    const nextUser = result.payload?.user || result.payload
+    navigate(nextUser ? routeForUser(nextUser) : '/vendor/dashboard', { replace: true })
   }
+
+  const isStillCustomer = (user?.role || '').toLowerCase() === 'customer'
 
   if (alreadyPending || user?.vendorVerificationStatus === 'pending') {
     return (
@@ -128,9 +135,19 @@ export default function VendorEligibilityFlow() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-xl bg-white border border-onLight/10 rounded-3xl p-8 md:p-10"
         >
+          {isStillCustomer && (
+            <Link
+              to="/customer/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-leaf-dim hover:text-leaf mb-5 transition-colors"
+            >
+              <ArrowLeft size={16} />
+              Back to customer dashboard
+            </Link>
+          )}
           <h1 className="font-display text-3xl font-semibold mb-1">Vendor eligibility</h1>
           <p className="text-sm text-onLight/50 mb-8">
             A few details about your business, plus identity documents for verification.
+            You stay a customer until you submit this form.
           </p>
 
           <div className="space-y-5">

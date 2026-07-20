@@ -13,12 +13,12 @@ const STATUS_META = {
   },
   AwaitingConfirmation: {
     label: 'Waiting for admin',
-    description: 'Payment received. Waiting for Oscillate to confirm your order.',
+    description: 'Receipt submitted. Waiting for Oscillate to confirm your payment.',
     className: 'bg-amber/15 text-amber',
   },
   Processing: {
     label: 'Confirmed',
-    description: 'Admin confirmed — your order is being prepared.',
+    description: 'Admin confirmed your payment — your order is being prepared.',
     className: 'bg-leaf/15 text-leaf-dim',
   },
   'In transit': {

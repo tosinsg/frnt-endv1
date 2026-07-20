@@ -20,24 +20,20 @@ export default function Navbar() {
   const busy = status === 'loading'
 
   async function handleSellOnOscillate() {
-    // Guests → auth with vendor intent → registration → role → vendor onboarding
     if (!isAuthenticated) {
       navigate('/auth?intent=vendor')
       return
     }
-    // Already a vendor → onboarding or dashboard
     if (isVendor) {
       navigate(routeForUser(user))
       return
     }
-    // Admin never sells
     if (isAdmin) return
 
-    // Customer → switch to vendor role + vendor onboarding
+    // Soft intent only — stays customer until eligibility is submitted
     const result = await dispatch(becomeVendor())
     if (becomeVendor.fulfilled.match(result)) {
-      const nextUser = result.payload?.user
-      navigate(nextUser ? routeForUser(nextUser) : '/onboarding/vendor')
+      navigate('/onboarding/vendor')
     }
   }
 
@@ -70,28 +66,12 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
-          {/* Browse: everyone except pure admin focus can browse public catalog */}
-          {!isAdmin && (
-            <Link
-              to="/products"
-              className="text-sm text-onLight/60 hover:text-leaf-dim hover:bg-leaf/8 rounded-full px-3.5 py-2 transition-colors"
-            >
-              Browse
-            </Link>
-          )}
-
-          {/* Sell on Oscillate: guests + customers only — never vendors or admins */}
-          {!isVendor && !isAdmin && (
-            <button
-              type="button"
-              onClick={handleSellOnOscillate}
-              disabled={busy}
-              className="text-sm text-onLight/60 hover:text-leaf-dim hover:bg-leaf/8 rounded-full px-3.5 py-2 transition-colors disabled:opacity-50"
-            >
-              Sell on Oscillate
-            </button>
-          )}
-
+          <Link
+            to="/products"
+            className="text-sm text-onLight/60 hover:text-leaf-dim hover:bg-leaf/8 rounded-full px-3.5 py-2 transition-colors"
+          >
+            Browse
+          </Link>
           {isVendor && (
             <Link
               to="/vendor/dashboard"
@@ -108,6 +88,16 @@ export default function Navbar() {
               For You
             </Link>
           )}
+          {!isVendor && !isAdmin && (
+            <button
+              type="button"
+              onClick={handleSellOnOscillate}
+              disabled={busy}
+              className="text-sm text-onLight/60 hover:text-leaf-dim hover:bg-leaf/8 rounded-full px-3.5 py-2 transition-colors disabled:opacity-50"
+            >
+              Sell on Oscillate
+            </button>
+          )}
           {isAdmin && (
             <Link
               to="/admin"
@@ -119,7 +109,6 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Cart is a customer concept only */}
           {(isCustomer || !isAuthenticated) && (
             <button
               onClick={handleCart}
@@ -155,9 +144,14 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Button size="md" variant="primary" onClick={() => navigate('/auth')} className={cn('ml-1.5')}>
-              Get Started
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="md" variant="outline" onClick={() => navigate('/login')} className={cn('ml-1.5')}>
+                Log in
+              </Button>
+              <Button size="md" variant="primary" onClick={() => navigate('/auth')} className={cn('ml-1.5')}>
+                Get Started
+              </Button>
+            </div>
           )}
         </div>
       </nav>

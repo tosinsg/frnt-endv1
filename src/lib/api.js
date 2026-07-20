@@ -141,8 +141,16 @@ export const api = {
 
   // Cart (customers only)
   getCart: () => request('/cart'),
-  addToCart: (productId) =>
-    request('/cart/items', { method: 'POST', body: JSON.stringify({ productId }) }),
+  addToCart: (productId, quantity = 1) =>
+    request('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify({ productId, quantity }),
+    }),
+  setCartQuantity: (productId, quantity) =>
+    request(`/cart/items/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ quantity }),
+    }),
   removeFromCart: (productId) => request(`/cart/items/${productId}`, { method: 'DELETE' }),
   clearCart: () => request('/cart', { method: 'DELETE' }),
 
@@ -158,6 +166,7 @@ export const api = {
   // Uploads (Cloudinary)
   uploadVendorDoc: (file) => uploadFile('/uploads/vendor-doc', file),
   uploadProductImage: (file) => uploadFile('/uploads/product-image', file),
+  uploadPaymentReceipt: (file) => uploadFile('/uploads/payment-receipt', file),
   uploadStatus: () => request('/uploads/status'),
 
   // Reviews
